@@ -101,6 +101,7 @@ class S21Client:
         filter_countdown: int = holding_registers[IR_CurFILTER_TIMER]
         pressure_air_incoming: int = holding_registers[IR_CurSuPRESS]
         pressure_air_outgoing: int = holding_registers[IR_CurExPRESS]
+        # EO MaNi additions
         
         self.device = ClimateDevice(
             available=True,
@@ -156,6 +157,14 @@ class S21Client:
             max_fan_level=max_fan_level,
             filter_state=filter_state,
             alarm_state=alarm_state,
+            
+            # MaNi additions
+            current_temperature_fresh_air=temp_air_incoming / 10,
+            current_temperature_consumed_air=temp_air_outgoing / 10,
+            filter_countdown=filter_countdown,
+            pressure_air_incoming=pressure_air_incoming,
+            pressure_air_outgoing=pressure_air_outgoing,
+            # EO MaNi additions
         )
 
         return self.device
