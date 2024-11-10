@@ -2,10 +2,10 @@ import unittest
 
 from pyModbusTCP.server import DataBank, ModbusServer
 
-from pybls21.client import S21Client
-from pybls21.constants import *
-from pybls21.exceptions import *
-from pybls21.models import ClimateDevice, ClimateEntityFeature, HVACAction, HVACMode
+from pybls21ext.client import S21Client
+from pybls21ext.constants import *
+from pybls21ext.exceptions import *
+from pybls21ext.models import ClimateDevice, ClimateEntityFeature, HVACAction, HVACMode
 
 
 class TestClient(unittest.IsolatedAsyncioTestCase):
