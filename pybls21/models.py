@@ -55,6 +55,6 @@ class ClimateDevice(NamedTuple):
 
     current_temperature_fresh_air: float
     current_temperature_consumed_air: float
-    filter_countdown=filter_countdown: int
-    pressure_air_incoming=pressure_air_incoming: int
-    pressure_air_outgoing=pressure_air_outgoing: int
+    filter_countdown: int
+    pressure_air_incoming: int
+    pressure_air_outgoing: int
