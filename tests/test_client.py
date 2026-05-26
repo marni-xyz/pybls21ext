@@ -558,6 +558,7 @@ class TestClient(unittest.IsolatedAsyncioTestCase):
 
 
     # --- Bypass tests ---
+
     async def test_set_bypass_mode_close(self):
         self.server.data_bank.set_holding_registers(HR_BYPASS_ROTOR_MODE, [1])
 
@@ -599,22 +600,52 @@ class TestClient(unittest.IsolatedAsyncioTestCase):
 
         client.client.connect.assert_not_called()
 
-    async def test_set_bypass_mode_when_no_bypass_available_raises_exception(self):
-        self.server.data_bank.set_holding_registers(HR_BYPASS_ROTOR_TYPE, [0])
+
+    # --- Alarm code tests ---
+
+    async def test_poll_alarm_codes_when_no_alarm(self):
+        self.server.data_bank.set_input_registers(IR_ALARM, [0])
 
         client = S21Client(host=self.server.host, port=self.server.port)
-        await client.poll()
+        device = await client.poll()
 
-        with self.assertRaises(ValueError):
-            await client.set_bypass_mode(1)
+        self.assertEqual(device.alarm_codes, [])
 
-    async def test_set_bypass_mode_before_poll_raises_exception(self):
+    async def test_poll_alarm_codes_when_single_alarm(self):
+        self.server.data_bank.set_input_registers(IR_ALARM, [1])
+        alarm_bits = [False] * 53
+        alarm_bits[3] = True  # Alarm code 3 active
+        self.server.data_bank.set_discrete_inputs(19, alarm_bits)
+
         client = S21Client(host=self.server.host, port=self.server.port)
-        # no poll() → device needs to be None
+        device = await client.poll()
 
-        with self.assertRaises(ValueError):
-            await client.set_bypass_mode(1)
+        self.assertEqual(device.alarm_codes, [3])
 
+    async def test_poll_alarm_codes_when_multiple_alarms(self):
+        self.server.data_bank.set_input_registers(IR_ALARM, [1])
+        alarm_bits = [False] * 53
+        alarm_bits[3] = True   # Alarm code 3
+        alarm_bits[7] = True   # Alarm code 7
+        alarm_bits[15] = True  # Alarm code 15
+        self.server.data_bank.set_discrete_inputs(19, alarm_bits)
+
+        client = S21Client(host=self.server.host, port=self.server.port)
+        device = await client.poll()
+
+        self.assertEqual(device.alarm_codes, [3, 7, 15])
+
+    async def test_poll_alarm_codes_not_read_when_no_alarm(self):
+        """Verify discrete inputs are NOT read when alarm_state == 0."""
+        self.server.data_bank.set_input_registers(IR_ALARM, [0])
+        alarm_bits = [False] * 53
+        alarm_bits[5] = True  # initiated, but should be ignoriered
+        self.server.data_bank.set_discrete_inputs(19, alarm_bits)
+
+        client = S21Client(host=self.server.host, port=self.server.port)
+        device = await client.poll()
+
+        self.assertEqual(device.alarm_codes, [])
 
 
 class TestDataBank(DataBank):

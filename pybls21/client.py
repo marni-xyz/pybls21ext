@@ -70,6 +70,13 @@ class S21Client:
         current_humidity: int = input_registers[IR_CurRH_Int]
         filter_state: int = input_registers[IR_StateFILTER]
         alarm_state: int = input_registers[IR_ALARM]
+
+        # MaNi additions — get details for alarm (only if active alarm/warning state)
+        alarm_codes: list[int] = []
+        if alarm_state > 0:
+            alarm_codes = await self._read_alarm_codes()
+        # EO MaNi additions
+
         max_fan_level: int = holding_registers[HR_MaxSPEED_MODE]
         current_fan_level: int = holding_registers[HR_SPEED_MODE]  # 255 - manual
         temp_before_heating_x10: int = _to_signed_16bit(
@@ -167,6 +174,7 @@ class S21Client:
             extract_fan_speed=extract_fan_speed,
 
             # MaNi additions
+            alarm_codes=alarm_codes,
             current_intake_temperature_out=temp_after_heating_x10 / 10,  # fresh air ventilation -> rooms
             current_outlet_temperature_in=temp_used_air_incoming_x10 / 10,   # used air rooms -> ventilation
             current_outlet_temperature_out=temp_used_air_outgoing_x10 / 10,  # used air ventilation -> outside 
@@ -331,6 +339,12 @@ class S21Client:
         if not isinstance(mode, int) or mode not in (0, 1, 2):
             raise ValueError("Bypass mode must be 0 (close/start), 1 (open/stop), or 2 (auto)")
 
+    async def _read_alarm_codes(self) -> list[int]:
+        """Read active alarm codes from Discrete Inputs 19-71."""
+        DI_ALARM_START = 19
+        DI_ALARM_COUNT = 53  # codes 0-52
+        bits = await self._read_discrete_inputs(DI_ALARM_START, DI_ALARM_COUNT)
+        return [i for i, active in enumerate(bits) if active]
 
     # -----------------------------------------------------------
     # Functions to connect, get individual information or write changes
@@ -382,6 +396,10 @@ class S21Client:
     async def _read_coils(self, address: int, count: int) -> List[bool]:
         response = await self.client.read_coils(address, count=count)
         return self._get_bits(response, count, f"read coils at {address}")
+
+    async def _read_discrete_inputs(self, address: int, count: int) -> list[bool]:
+        response = await self.client.read_discrete_inputs(address, count=count)
+        return self._get_bits(response, count, f"read discrete inputs at {address}")
 
     async def _write_register(self, address: int, value: int) -> None:
         response = await self.client.write_register(address, value)

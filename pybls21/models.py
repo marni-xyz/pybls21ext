@@ -64,6 +64,7 @@ class ClimateDevice:
     current_outlet_temperature_out: float
     is_timer:                       bool
     is_schedule_mode:               bool
+    alarm_codes:                    list[int] = field(default_factory=list)
     # EO MaNi additions
 
     current_humidity: Optional[float] = None
