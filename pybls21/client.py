@@ -61,7 +61,7 @@ class S21Client:
             raise UnsupportedDeviceException("Unsupported device (IR_DeviceTYPE != 1)")
 
         coils = await self._read_coils(0, count=4)
-        holding_registers = await self._read_holding_registers(0, count=45)
+        holding_registers = await self._read_holding_registers(0, count=75)
         input_registers = await self._read_input_registers(0, count=39)
 
         is_on: bool = coils[CL_POWER]
@@ -70,6 +70,13 @@ class S21Client:
         current_humidity: int = input_registers[IR_CurRH_Int]
         filter_state: int = input_registers[IR_StateFILTER]
         alarm_state: int = input_registers[IR_ALARM]
+
+        # MaNi additions — get details for alarm (only if active alarm/warning state)
+        alarm_codes: list[int] = []
+        if alarm_state > 0:
+            alarm_codes = await self._read_alarm_codes()
+        # EO MaNi additions
+
         max_fan_level: int = holding_registers[HR_MaxSPEED_MODE]
         current_fan_level: int = holding_registers[HR_SPEED_MODE]  # 255 - manual
         temp_before_heating_x10: int = _to_signed_16bit(
@@ -88,11 +95,16 @@ class S21Client:
 
         # MaNi additions
         is_timer: bool = coils[CL_TIMER]
-        is_schedule: bool = coils[CL_WEEK]
         main_timer_sec: int = input_registers[IR_CurTIMER_TIME] & 0xFF   # Low Byte is seconds
         main_timer_min: int = ( input_registers[IR_CurTIMER_TIME] >> 8 ) & 0xFF  # High Byte is minutes
         main_timer_hrs: int = input_registers[IR_CurTIMER_TIME_HRS] & 0xFF   # Low Byte (padding-safe)
+        
+        is_schedule: bool = coils[CL_WEEK]
         current_schedule_mode_speed: int = input_registers[IR_CurWeekSpeed]  # 0 - manual
+        
+        bypass_type: int = holding_registers[HR_BYPASS_ROTOR_TYPE]
+        bypass_mode: int = holding_registers[HR_BYPASS_ROTOR_MODE]
+        
         temp_used_air_incoming_x10: int = _to_signed_16bit(
             input_registers[IR_CurTEMP_ExAirIn]
         )
@@ -162,17 +174,20 @@ class S21Client:
             extract_fan_speed=extract_fan_speed,
 
             # MaNi additions
+            alarm_codes=alarm_codes,
             current_intake_temperature_out=temp_after_heating_x10 / 10,  # fresh air ventilation -> rooms
             current_outlet_temperature_in=temp_used_air_incoming_x10 / 10,   # used air rooms -> ventilation
             current_outlet_temperature_out=temp_used_air_outgoing_x10 / 10,  # used air ventilation -> outside 
             filter_countdown=filter_countdown,  # whole days until filter replacement
             is_timer=is_timer,
             timer_countdown = f"{main_timer_hrs:02d}:{main_timer_min:02d}:{main_timer_sec:02d}",
-            pressure_air_incoming=pressure_air_incoming,
-            pressure_air_outgoing=pressure_air_outgoing,
             is_schedule_mode=is_schedule,
             fan_level_schedule_mode=current_schedule_mode_speed,
             fan_level_manual_mode=current_fan_level,
+            bypass_type=bypass_type,
+            bypass_mode=bypass_mode,
+            pressure_air_incoming=pressure_air_incoming,
+            pressure_air_outgoing=pressure_air_outgoing,
             # EO MaNi additions
         )
         
@@ -312,6 +327,24 @@ class S21Client:
     async def _set_scheduler_mode_off(self) -> None:
         await self._write_coil(CL_WEEK, False)
 
+    async def set_bypass_mode(self, mode: int) -> None:
+        self._validate_bypass_mode(mode)
+        await self._do_with_connection(lambda: self._set_bypass_mode(mode))
+
+    async def _set_bypass_mode(self, mode: int) -> None:
+        await self._write_register(HR_BYPASS_ROTOR_MODE, mode)
+
+    @staticmethod
+    def _validate_bypass_mode(mode: int) -> None:
+        if not isinstance(mode, int) or mode not in (0, 1, 2):
+            raise ValueError("Bypass mode must be 0 (close/start), 1 (open/stop), or 2 (auto)")
+
+    async def _read_alarm_codes(self) -> list[int]:
+        """Read active alarm codes from Discrete Inputs 19-71."""
+        DI_ALARM_START = 19
+        DI_ALARM_COUNT = 53  # codes 0-52
+        bits = await self._read_discrete_inputs(DI_ALARM_START, DI_ALARM_COUNT)
+        return [i for i, active in enumerate(bits) if active]
 
     # -----------------------------------------------------------
     # Functions to connect, get individual information or write changes
@@ -363,6 +396,10 @@ class S21Client:
     async def _read_coils(self, address: int, count: int) -> List[bool]:
         response = await self.client.read_coils(address, count=count)
         return self._get_bits(response, count, f"read coils at {address}")
+
+    async def _read_discrete_inputs(self, address: int, count: int) -> list[bool]:
+        response = await self.client.read_discrete_inputs(address, count=count)
+        return self._get_bits(response, count, f"read discrete inputs at {address}")
 
     async def _write_register(self, address: int, value: int) -> None:
         response = await self.client.write_register(address, value)
