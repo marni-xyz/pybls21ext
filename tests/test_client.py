@@ -122,11 +122,13 @@ class TestClient(unittest.IsolatedAsyncioTestCase):
         self.server.data_bank.set_input_registers(IR_CurFILTER_TIMER, [42])
         self.server.data_bank.set_input_registers(IR_CurSuPRESS, [333])
         self.server.data_bank.set_input_registers(IR_CurExPRESS, [444])
+        self.server.data_bank.set_coils(CL_TIMER, [False])
         self.server.data_bank.set_input_registers(IR_CurTIMER_TIME, [27 << 8])
         self.server.data_bank.set_input_registers(IR_CurTIMER_TIME_HRS, [2])
-        self.server.data_bank.set_coils(CL_TIMER, [False])
-        self.server.data_bank.set_input_registers(IR_CurWeekSpeed, [1])
         self.server.data_bank.set_coils(CL_WEEK, [True])
+        self.server.data_bank.set_input_registers(IR_CurWeekSpeed, [1])
+        self.server.data_bank.set_holding_registers(HR_BYPASS_ROTOR_TYPE, [5])
+        self.server.data_bank.set_holding_registers(HR_BYPASS_ROTOR_MODE, [2])
         # EO MaNi additions
 
         self.server.data_bank.set_input_registers(
@@ -187,6 +189,8 @@ class TestClient(unittest.IsolatedAsyncioTestCase):
                 is_schedule_mode=True,
                 fan_level_schedule_mode=1,
                 fan_level_manual_mode=2,
+                bypass_type=5,
+                bypass_mode=2,
                 # EO MaNi additions
             ),
         )
@@ -551,6 +555,66 @@ class TestClient(unittest.IsolatedAsyncioTestCase):
         await client.set_scheduler_mode_off()
 
         self.assertEqual(self.server.data_bank.get_coils(CL_WEEK, 1), [False])
+
+
+    # --- Bypass tests ---
+    async def test_set_bypass_mode_close(self):
+        self.server.data_bank.set_holding_registers(HR_BYPASS_ROTOR_MODE, [1])
+
+        client = S21Client(host=self.server.host, port=self.server.port)
+        await client.poll()
+        await client.set_bypass_mode(0)
+        device = await client.poll()
+
+        self.assertEqual(device.bypass_mode, 0)
+
+    async def test_set_bypass_mode_open(self):
+        self.server.data_bank.set_holding_registers(HR_BYPASS_ROTOR_MODE, [0])
+
+        client = S21Client(host=self.server.host, port=self.server.port)
+        await client.poll()
+        await client.set_bypass_mode(1)
+        device = await client.poll()
+
+        self.assertEqual(device.bypass_mode, 1)
+
+    async def test_set_bypass_mode_auto(self):
+        self.server.data_bank.set_holding_registers(HR_BYPASS_ROTOR_MODE, [0])
+
+        client = S21Client(host=self.server.host, port=self.server.port)
+        await client.poll()
+        await client.set_bypass_mode(2)
+        device = await client.poll()
+
+        self.assertEqual(device.bypass_mode, 2)
+
+    async def test_set_bypass_mode_when_value_is_invalid_raises_exception(self):
+        client = S21Client(host=self.server.host, port=self.server.port)
+        client.client.connect = AsyncMock(return_value=True)
+
+        for invalid_mode in (3, -1, 255):
+            with self.subTest(mode=invalid_mode):
+                with self.assertRaises(ValueError):
+                    await client.set_bypass_mode(invalid_mode)
+
+        client.client.connect.assert_not_called()
+
+    async def test_set_bypass_mode_when_no_bypass_available_raises_exception(self):
+        self.server.data_bank.set_holding_registers(HR_BYPASS_ROTOR_TYPE, [0])
+
+        client = S21Client(host=self.server.host, port=self.server.port)
+        await client.poll()
+
+        with self.assertRaises(ValueError):
+            await client.set_bypass_mode(1)
+
+    async def test_set_bypass_mode_before_poll_raises_exception(self):
+        client = S21Client(host=self.server.host, port=self.server.port)
+        # no poll() → device needs to be None
+
+        with self.assertRaises(ValueError):
+            await client.set_bypass_mode(1)
+
 
 
 class TestDataBank(DataBank):

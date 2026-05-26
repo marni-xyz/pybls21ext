@@ -22,7 +22,7 @@ The major differences include:
 Initialization:
 
 ```python
-client = S21Client("192.168.0.125", "502")
+client = S21Client("10.10.0.123", "502")
 ```
 
 Polling:
@@ -32,18 +32,19 @@ await client.poll()
 ```
 
 Available methods to change B21 settings:
-   Method                                                 | Description                       |
- |--------------------------------------------------------|-----------------------------------|
- | `turn_on()` / `turn_off()`                             | Power on/off the device           |
- | `set_boost_on()` / `set_boost_off()`                   | Enable/disable boost mode         |
- | `set_timer_on()` / `set_timer_off()`                   | Enable/disable timer mode         |
- | `set_scheduler_mode_on()` / `set_scheduler_mode_off()` | Enable/disable scheduler mode     |
- | `set_hvac_mode(hvac_mode: HVACMode)`                   | Set HVAC mode                     |
- | `set_fan_mode(mode: int)`                              | Set fan mode                      |
- | `set_manual_fan_speed_percent(speed: int)`             | Set manual fan speed (0-100%)     |
- | `set_temperature(temp_celsius: int)`                   | Set target temperature (°C)       |
- | `reset_filter_change_timer()`                          | Reset timer for filter change     |
- | `reset_alarm()`                                        | Reset all alarms                  |
+   Method                                                 | Description                                                         |
+ |--------------------------------------------------------|---------------------------------------------------------------------|
+ | `turn_on()` / `turn_off()`                             | Power on/off the device                                             |
+ | `set_boost_on()` / `set_boost_off()`                   | Enable/disable boost mode                                           |
+ | `set_timer_on()` / `set_timer_off()`                   | Enable/disable timer mode                                           |
+ | `set_scheduler_mode_on()` / `set_scheduler_mode_off()` | Enable/disable scheduler mode                                       |
+ | `set_hvac_mode(hvac_mode: HVACMode)`                   | Set HVAC mode                                                       |
+ | `set_fan_mode(mode: int)`                              | Set fan mode                                                        |
+ | `set_manual_fan_speed_percent(speed: int)`             | Set manual fan speed (0-100%)                                       |
+ | `set_temperature(temp_celsius: int)`                   | Set target temperature (°C)                                         |
+ | `set_bypass_mode(mode: int)`                           | Set mode of bypass/rotor (0 - close/start, 1 - open/stop, 2 - auto  |
+ | `reset_filter_change_timer()`                          | Reset timer for filter change                                       |
+ | `reset_alarm()`                                        | Reset all alarms                                                    |
 
 
 ## Testing
@@ -51,7 +52,7 @@ Available methods to change B21 settings:
 To check connectivity with and general output from your Blauberg S21 device, run:
 
 ```bash
-python demo.py --host 192.168.0.125 --port 502
+python demo.py --host 192.168.0.125 [--port 502]
 ```
 
 ## Report issues
