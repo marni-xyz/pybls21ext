@@ -236,10 +236,10 @@ class S21Client:
     #def _validate_fan_mode(mode: int) -> None:
     #    if not isinstance(mode, int) or mode not in (1, 2, 3, 4, 5, 255):
     def _validate_fan_mode(mode: int, max_fan_level: int) -> None:
-        valid = set(range(1, max_fan_level)) | {255}
+        valid = set(range(1, max_fan_level+1)) | {255}
         if not isinstance(mode, int) or mode not in valid:
+            raise ValueError(f"Fan mode must be one of: {valid}; got: {mode}")
     # EO MaNi additions
-            raise ValueError("Fan mode must be one of: 1 to ", max_fan_level, " or 255")
 
     async def set_manual_fan_speed_percent(self, speed_percent: int) -> None:
         self._validate_manual_fan_speed_percent(speed_percent)
@@ -253,7 +253,7 @@ class S21Client:
     @staticmethod
     def _validate_manual_fan_speed_percent(speed_percent: int) -> None:
         if not isinstance(speed_percent, int) or not 0 <= speed_percent <= 100:
-            raise ValueError("Manual fan speed percent must be between 0 and 100")
+            raise ValueError(f"Manual fan speed percent must be between 0 and 100; got: {speed_percent}")
 
     async def set_temperature(self, temp_celsius: int) -> None:
         self._validate_temperature(temp_celsius)
@@ -265,7 +265,7 @@ class S21Client:
     @staticmethod
     def _validate_temperature(temp_celsius: int) -> None:
         if not isinstance(temp_celsius, int) or not 15 <= temp_celsius <= 30:
-            raise ValueError("Temperature must be between 15 and 30 °C")
+            raise ValueError(f"Temperature must be between 15 and 30 °C; got: {temp_celsius}")
 
     async def reset_filter_change_timer(self) -> None:
         await self._do_with_connection(self._reset_filter_change_timer)
@@ -337,7 +337,7 @@ class S21Client:
     @staticmethod
     def _validate_bypass_mode(mode: int) -> None:
         if not isinstance(mode, int) or mode not in (0, 1, 2):
-            raise ValueError("Bypass mode must be 0 (close/start), 1 (open/stop), or 2 (auto)")
+            raise ValueError(f"Bypass mode must be 0 (close/start), 1 (open/stop), or 2 (auto); got: {mode}")
 
     async def _read_alarm_codes(self) -> list[int]:
         """Read active alarm codes from Discrete Inputs 19-71."""
