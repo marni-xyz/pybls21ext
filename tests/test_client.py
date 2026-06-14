@@ -453,8 +453,9 @@ class TestClient(unittest.IsolatedAsyncioTestCase):
 
         for invalid_mode in (0, 6, 254):
             with self.subTest(mode=invalid_mode):
-                with self.assertRaises(ValueError):
+                with self.assertRaises(ValueError) as ctx:
                     await client.set_fan_mode(invalid_mode, 3)
+            print(f"[mode={invalid_mode}] ValueError: {ctx.exception}")
 
         client.client.connect.assert_not_called()
 
@@ -475,8 +476,9 @@ class TestClient(unittest.IsolatedAsyncioTestCase):
 
         for invalid_speed in (-1, 101):
             with self.subTest(speed=invalid_speed):
-                with self.assertRaises(ValueError):
+                with self.assertRaises(ValueError) as ctx:
                     await client.set_manual_fan_speed_percent(invalid_speed)
+            print(f"[speed={invalid_speed}] ValueError: {ctx.exception}")
 
         client.client.connect.assert_not_called()
 
@@ -495,8 +497,9 @@ class TestClient(unittest.IsolatedAsyncioTestCase):
 
         for invalid_temperature in (14, 31):
             with self.subTest(temperature=invalid_temperature):
-                with self.assertRaises(ValueError):
+                with self.assertRaises(ValueError) as ctx:
                     await client.set_temperature(invalid_temperature)
+            print(f"[temperature={invalid_temperature}] ValueError: {ctx.exception}")
 
         client.client.connect.assert_not_called()
 
@@ -595,8 +598,9 @@ class TestClient(unittest.IsolatedAsyncioTestCase):
 
         for invalid_mode in (3, -1, 255):
             with self.subTest(mode=invalid_mode):
-                with self.assertRaises(ValueError):
+                with self.assertRaises(ValueError) as ctx:
                     await client.set_bypass_mode(invalid_mode)
+            print(f"[mode={invalid_mode}] ValueError: {ctx.exception}")
 
         client.client.connect.assert_not_called()
 

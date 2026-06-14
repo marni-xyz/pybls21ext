@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pybls21",
-    version="4.6.0",
+    version="4.6.1",
     author="Julius Vitkauskas, Martin Niese",
     description="An api allowing control of AC state (temperature, on/off, speed) of an Blauberg S21 device locally over TCP",
     long_description=long_description,
